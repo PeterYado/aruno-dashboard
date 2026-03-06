@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中西アルノ DASHBOARD v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080810;
+  --surface: #0e0e1a;
+  --card: #12121e;
+  --border: #1c1c2e;
+  --border2: #252538;
+  --accent: #c9a96e;
+  --accent-glow: rgba(201,169,110,0.15);
+  --accent2: #6eb4c9;
+  --accent3: #c96eb4;
+  --green: #6ec98e;
+  --text: #eae6de;
+  --text2: #b0a898;
+  --muted: #5a5670;
+  --red: #c96e6e;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 14px;
+}
+
+/* grain */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* ── HEADER ─────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,8,16,0.95);
+  backdrop-filter: blur(12px);
+}
+
+.header-logo {
+  padding: 1rem 2rem;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.header-logo h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.2rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(201,169,110,0.4);
+}
+
+.header-logo .sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  margin-top: 0.2rem;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 1rem;
+  flex: 1;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.nav-btn:hover, .nav-btn.active { color: var(--accent); }
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1.5rem;
+  border-left: 1px solid var(--border);
+  margin-left: auto;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.status-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+}
+
+.status-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text2);
+}
+
+.live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s infinite;
+  display: inline-block;
+  margin-right: 0.3rem;
+}
+
+@keyframes blink {
+  0%,100%{opacity:1;} 50%{opacity:0.3;}
+}
+
+.refresh-btn {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.refresh-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.refresh-btn.loading {
+  animation: spin 1s linear infinite;
+}
+
+/* ── TICKER ─────────────────────────────────── */
+.ticker {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0.4rem 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-track {
+  display: inline-flex;
+  animation: ticker-anim 40s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+.tick-item {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  padding: 0 2.5rem;
+}
+.tick-item.hi { color: var(--accent); }
+.tick-sep { color: var(--border2); padding: 0 0.5rem; }
+@keyframes ticker-anim {
+  0%{transform:translateX(0)} 100%{transform:translateX(-50%)}
+}
+
+/* ── MAIN GRID ───────────────────────────────── */
+.main {
+  display: grid;
+  grid-template-columns: 260px 1fr 260px;
+  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto;
+  gap: 1px;
+  background: var(--border);
+  min-height: calc(100vh - 80px);
+}
+
+/* ── PANELS ──────────────────────────────────── */
+.panel {
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.2rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.panel-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--border2);
+  letter-spacing: 0.1em;
+}
+
+.panel-body { padding: 0.8rem 1.2rem; }
+
+/* ── PROFILE PANEL ───────────────────────────── */
+.profile-col {
+  grid-row: 1/3;
+}
+
+.profile-img-wrap {
+  position: relative;
+  overflow: hidden;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-img-wrap img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.05) saturate(0.9);
+  transition: transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.profile-img-wrap:hover img { transform: scale(1.04); }
+
+.profile-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(8,8,16,0.85) 0%, transparent 55%);
+}
+
+.profile-badge-wrap {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 0.8rem;
+  right: 0.8rem;
+}
+
+.profile-name-jp {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.profile-name-en {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  margin-top: 0.15rem;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid;
+  letter-spacing: 0.1em;
+}
+.tg { border-color: var(--accent); color: var(--accent); }
+.tb { border-color: var(--accent2); color: var(--accent2); }
+.tp { border-color: var(--accent3); color: var(--accent3); }
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  margin: 0 -1.2rem;
+}
+
+.stat-cell {
+  background: var(--bg);
+  padding: 0.6rem 1rem;
+}
+
+.stat-l {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 0.2rem;
+}
+
+.stat-v {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.stat-v a {
+  color: var(--accent2);
+  text-decoration: none;
+  font-size: 0.7rem;
+}
+.stat-v a:hover { text-decoration: underline; }
+
+.profile-drama {
+  margin-top: 0.8rem;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  padding: 0.7rem 0.9rem;
+}
+
+.drama-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  color: var(--accent3);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.3rem;
+}
+
+.drama-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.drama-sub {
+  font-size: 0.7rem;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+/* ── BLOG PANEL ──────────────────────────────── */
+.blog-col {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* ── YOUTUBE PANEL (데스크탑 위치) ──────────────── */
+.youtube-col {
+  grid-column: 2;
+  grid-row: 3;
+  border-top: 1px solid var(--border);
+}
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+@media (max-width: 1400px) { .blog-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1000px) { .blog-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.blog-card {
+  background: var(--bg);
+  cursor: pointer;
+  transition: background 0.2s;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.blog-card:hover { background: var(--card); }
+
+.blog-thumb-wrap {
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.blog-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  filter: saturate(0.85);
+  transition: filter 0.3s, transform 0.4s;
+}
+.blog-card:hover .blog-thumb {
+  filter: saturate(1.1);
+  transform: scale(1.03);
+}
+
+.blog-card-body {
+  padding: 0.7rem 0.9rem;
+}
+
+.blog-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.blog-card-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.52rem;
+  color: var(--accent);
+}
+
+.new-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.42rem;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 0.05rem 0.3rem;
+  letter-spacing: 0.08em;
+}
+
+.blog-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.45rem;
+  color: var(--border2);
+  margin-left: auto;
+}
+
+.blog-card-title {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── NEWS PANEL ──────────────────────────────── */
+.news-col {
+  grid-column: 2;
+  grid-row: 2;
+  border-top: 1px solid var(--border);
+}
+
+.news-list { }
+
+.news-item {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.7rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  align-items: flex-start;
+}
+.news-item:hover { background: var(--card); }
+
+.news-source-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.45rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  white-space: nowrap;
+  margin-top: 0.2rem;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.news-source-badge.natalie { border-color: var(--accent2); color: var(--accent2); }
+.news-source-badge.oricon  { border-color: var(--accent);  color: var(--accent); }
+.news-source-badge.model   { border-color: var(--accent3); color: var(--accent3); }
+.news-source-badge.other   { border-color: var(--border2); color: var(--muted); }
+
+.news-content { flex: 1; min-width: 0; }
+
+.news-title {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 0.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-meta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  color: var(--muted);
+}
+
+/* ── TV/MEDIA PANEL ──────────────────────────── */
+.tv-col {
+  grid-row: 1/3;
+}
+
+.tv-item {
+  padding: 0.75rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.tv-item:hover { background: var(--card); }
+
+.tv-item-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  color: var(--accent2);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+}
+
+.tv-item-title {
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 0.2rem;
+}
+
+.tv-item-ch {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.5rem;
+  color: var(--muted);
+}
+
+.tv-type-dot {
+  position: absolute;
+  right: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.45rem;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+/* ── YOUTUBE GRID ────────────────────────────── */
+.yt-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+}
+.yt-card {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  transition: background 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.yt-card:nth-child(even) {
+  border-right: none;
+}
+.yt-card:hover { background: var(--card); }
+.yt-thumb-wrap {
+  position: relative;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: var(--card);
+}
+.yt-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.85);
+  transition: filter 0.3s, transform 0.4s;
+}
+.yt-card:hover .yt-thumb {
+  filter: saturate(1.1);
+  transform: scale(1.03);
+}
+.yt-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.yt-card:hover .yt-play-icon { opacity: 1; }
+.yt-aruno-badge {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.42rem;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 0.1rem 0.4rem;
+  letter-spacing: 0.1em;
+}
+.yt-card-body {
+  padding: 0.5rem 0.7rem 0.6rem;
+}
+.yt-card-date {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  color: var(--accent);
+  margin-bottom: 0.2rem;
+}
+.yt-card-title {
+  font-size: 0.75rem;
+  color: var(--text);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── SKELETONS ───────────────────────────────── */
+.skel {
+  background: linear-gradient(90deg,
+    var(--card) 25%,
+    var(--border) 50%,
+    var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px;
+}
+.skel-line { height: 0.85em; margin: 0.3rem 0; }
+.skel-block { aspect-ratio: 16/9; }
+@keyframes shimmer {
+  0%{background-position:-200% 0} 100%{background-position:200% 0}
+}
+
+/* ── FADE IN ─────────────────────────────────── */
+@keyframes fadeUp {
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.fu { animation: fadeUp 0.35s ease both; }
+
+/* ── ERROR ───────────────────────────────────── */
+.err {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--red);
+  padding: 1rem;
+  line-height: 1.7;
+}
+.err a { color: var(--accent2); text-decoration: none; }
+.err a:hover { text-decoration: underline; }
+
+/* ── PAGINATION ──────────────────────────────── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+}
+.pg-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  letter-spacing: 0.05em;
+}
+.pg-btn:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.pg-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+.pg-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.pg-ellipsis {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0 0.2rem;
+}
+
+/* ── MORE LINK ───────────────────────────────── */
+.more-link {
+  display: block;
+  text-align: center;
+  padding: 0.6rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.more-link:hover { color: var(--accent); }
+
+/* ── RESPONSIVE ──────────────────────────────── */
+
+/* 태블릿 */
+@media (max-width: 1100px) {
+  .main { grid-template-columns: 220px 1fr 220px; }
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+
+  /* 헤더 - 2줄 구조로 */
+  .header {
+    flex-wrap: wrap;
+    min-height: unset;
+  }
+  .header-logo {
+    padding: 0.6rem 1rem;
+    border-right: none;
+    border-bottom: none;
+    flex: 1;
+  }
+  .header-logo h1 { font-size: 1.5rem; }
+  .header-logo .sub { display: none; }
+  .header-status {
+    gap: 0.6rem;
+    padding: 0 0.8rem;
+    border-left: none;
+  }
+  .status-item:first-child { display: none; }
+  /* 네비 - 전체 너비로 가로 스크롤 */
+  .header-nav {
+    order: 99;
+    width: 100%;
+    flex: none;
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-top: 1px solid var(--border);
+    display: flex;
+  }
+  .header-nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 0.55rem 1rem;
+    font-size: 0.55rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* 메인 그리드 → 완전 1열 */
+  .main {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    min-height: unset;
+  }
+
+  /* 모든 패널 grid 속성 무효화 */
+  .profile-col,
+  .blog-col,
+  .news-col,
+  .tv-col,
+  .youtube-col {
+    grid-column: unset !important;
+    grid-row: unset !important;
+    width: 100%;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* 프로필 */
+  .profile-img-wrap { height: 240px; }
+  .profile-stats { grid-template-columns: 1fr 1fr; }
+
+  /* 블로그 */
+  .blog-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* 뉴스 */
+  .news-item { padding: 0.6rem 0.8rem; }
+  .news-title { font-size: 0.78rem; }
+
+  /* 유튜브 */
+  .yt-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* 페이지네이션 */
+  .pg-btn {
+    min-width: 1.8rem;
+    height: 1.8rem;
+    font-size: 0.68rem;
+  }
+
+  /* 패널 헤드 */
+  .panel-head { padding: 0.6rem 0.8rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-logo">
+    <h1>ARUNO ⊿</h1>
+    <div class="sub">中西アルノ DASHBOARD v2 / 乃木坂46 5期生</div>
+  </div>
+  <nav class="header-nav">
+    <button class="nav-btn active" onclick="scrollTo(0,0)">PROFILE</button>
+    <button class="nav-btn" onclick="document.getElementById('blog-sec').scrollIntoView({behavior:'smooth'})">BLOG</button>
+    <button class="nav-btn" onclick="document.getElementById('news-sec').scrollIntoView({behavior:'smooth'})">NEWS</button>
+    <button class="nav-btn" onclick="document.getElementById('tv-sec').scrollIntoView({behavior:'smooth'})">TV/MEDIA</button>
+    <button class="nav-btn" onclick="document.getElementById('yt-sec').scrollIntoView({behavior:'smooth'})">YOUTUBE</button>
+  </nav>
+  <div class="header-status">
+    <div class="status-item">
+      <span class="status-label">STATUS</span>
+      <span class="status-val"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">UPDATED</span>
+      <span class="status-val" id="updated-time">--:--</span>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadAll()">↺ 更新</button>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track" id="ticker-track">
+    <span class="tick-item hi">⊿ 中西アルノ</span><span class="tick-sep">|</span>
+    <span class="tick-item">乃木坂46 5期生</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">福神メンバー</span><span class="tick-sep">|</span>
+    <span class="tick-item">選抜メンバー</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">ドラマ『惡の華』出演中</span><span class="tick-sep">|</span>
+    <span class="tick-item">Born 2003.03.17</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">Blood Type A</span><span class="tick-sep">|</span>
+    <span class="tick-item">千葉県出身</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">⊿ 中西アルノ</span><span class="tick-sep">|</span>
+    <span class="tick-item">乃木坂46 5期生</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">福神メンバー</span><span class="tick-sep">|</span>
+    <span class="tick-item">選抜メンバー</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">ドラマ『惡の華』出演中</span><span class="tick-sep">|</span>
+    <span class="tick-item">Born 2003.03.17</span><span class="tick-sep">|</span>
+    <span class="tick-item hi">Blood Type A</span><span class="tick-sep">|</span>
+    <span class="tick-item">千葉県出身</span><span class="tick-sep">|</span>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<main class="main">
+
+  <!-- LEFT: PROFILE -->
+  <aside class="panel profile-col">
+    <div class="profile-img-wrap">
+      <img
+        src="https://www.nogizaka46.com/images/46/605/fde6153cac131c43a2e8e0ac0bfcb.jpg"
+        alt="中西アルノ"
+        onerror="this.src='https://yotujoho.com/blog-data/nogizaka46/image/104411/small/0.jpg'"
+      >
+      <div class="profile-img-overlay"></div>
+      <div class="profile-badge-wrap">
+        <div class="profile-name-jp">中西 アルノ</div>
+        <div class="profile-name-en">NAKANISHI ARUNO</div>
+        <div class="tag-row">
+          <span class="tag tg">5期生</span>
+          <span class="tag tg">選抜</span>
+          <span class="tag tg">福神</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <div class="profile-stats">
+        <div class="stat-cell">
+          <div class="stat-l">BIRTHDAY</div>
+          <div class="stat-v">2003.03.17</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-l">AGE</div>
+          <div class="stat-v" id="age-val">--歳</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-l">BLOOD</div>
+          <div class="stat-v">A型</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-l">SIGN</div>
+          <div class="stat-v">うお座</div>
+        </div>
+        <div class="stat-cell" style="grid-column:1/3">
+          <div class="stat-l">HOME</div>
+          <div class="stat-v">千葉県出身</div>
+        </div>
+        <div class="stat-cell" style="grid-column:1/3">
+          <div class="stat-l">OFFICIAL</div>
+          <div class="stat-v">
+            <a href="https://www.nogizaka46.com/s/n46/artist/55395" target="_blank">nogizaka46.com ↗</a>
+          </div>
+        </div>
+        <div class="stat-cell" style="grid-column:1/3">
+          <div class="stat-l">BLOG</div>
+          <div class="stat-v">
+            <a href="https://www.nogizaka46.com/s/n46/diary/MEMBER/list?ct=55395" target="_blank">公式ブログ一覧 ↗</a>
+          </div>
+        </div>
+        <div class="stat-cell" style="grid-column:1/3">
+          <div class="stat-l">ORICON</div>
+          <div class="stat-v">
+            <a href="https://www.oricon.co.jp/prof/890440/" target="_blank">プロフィール ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最新情報カード -->
+      <div class="profile-drama" style="margin-top:1rem;">
+        <div class="drama-label">⊿ DRAMA 2026</div>
+        <div class="drama-title">惡の華</div>
+        <div class="drama-sub">常磐文（ときわ・あや）役<br>テレビ東京 4月9日〜毎週木曜 深0:00</div>
+      </div>
+
+      <div class="profile-drama" style="margin-top:0.5rem; border-color: var(--accent);">
+        <div class="drama-label" style="color:var(--accent);">⊿ MAGAZINE 2026.02</div>
+        <div class="drama-title" style="font-size:0.78rem;">ENTAME 0.36sec. 創刊号</div>
+        <div class="drama-sub">表紙＆巻頭グラビア<br>重要文化財での撮影</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER-TOP: BLOG -->
+  <section class="panel blog-col" id="blog-sec">
+    <div class="panel-head">
+      <span class="panel-title">BLOG UPDATES</span>
+      <span class="panel-count" id="blog-count">Loading...</span>
+    </div>
+    <div id="blog-body">
+      <div class="blog-grid" id="blog-skel">
+        <div class="panel" style="background:var(--bg);"><div class="skel skel-block"></div><div style="padding:0.7rem 0.9rem;"><div class="skel skel-line" style="width:40%"></div><div class="skel skel-line" style="width:80%"></div></div></div>
+        <div class="panel" style="background:var(--bg);"><div class="skel skel-block"></div><div style="padding:0.7rem 0.9rem;"><div class="skel skel-line" style="width:60%"></div><div class="skel skel-line" style="width:85%"></div></div></div>
+        <div class="panel" style="background:var(--bg);"><div class="skel skel-block"></div><div style="padding:0.7rem 0.9rem;"><div class="skel skel-line" style="width:40%"></div><div class="skel skel-line" style="width:70%"></div></div></div>
+        <div class="panel" style="background:var(--bg);"><div class="skel skel-block"></div><div style="padding:0.7rem 0.9rem;"><div class="skel skel-line" style="width:55%"></div><div class="skel skel-line" style="width:80%"></div></div></div>
+        <div class="panel" style="background:var(--bg);"><div class="skel skel-block"></div><div style="padding:0.7rem 0.9rem;"><div class="skel skel-line" style="width:40%"></div><div class="skel skel-line" style="width:65%"></div></div></div>
+        <div class="panel" style="background:var(--bg);"><div class="skel skel-block"></div><div style="padding:0.7rem 0.9rem;"><div class="skel skel-line" style="width:50%"></div><div class="skel skel-line" style="width:75%"></div></div></div>
+      </div>
+    </div>
+    <a class="more-link" href="https://www.nogizaka46.com/s/n46/diary/MEMBER/list?ct=55395" target="_blank">
+      ブログ一覧をすべて見る ↗
+    </a>
+  </section>
+
+  <!-- CENTER-BOTTOM: NEWS -->
+  <section class="panel news-col" id="news-sec">
+    <div class="panel-head">
+      <span class="panel-title">LATEST NEWS — 中西アルノ</span>
+      <span class="panel-count" id="news-count">Loading...</span>
+    </div>
+    <div id="news-body">
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border); display:flex; gap:0.7rem;"><div class="skel" style="width:60px;height:1.5em;flex-shrink:0;margin-top:0.2rem;"></div><div style="flex:1"><div class="skel skel-line" style="width:85%"></div><div class="skel skel-line" style="width:50%"></div></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border); display:flex; gap:0.7rem;"><div class="skel" style="width:60px;height:1.5em;flex-shrink:0;margin-top:0.2rem;"></div><div style="flex:1"><div class="skel skel-line" style="width:75%"></div><div class="skel skel-line" style="width:40%"></div></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border); display:flex; gap:0.7rem;"><div class="skel" style="width:60px;height:1.5em;flex-shrink:0;margin-top:0.2rem;"></div><div style="flex:1"><div class="skel skel-line" style="width:90%"></div><div class="skel skel-line" style="width:55%"></div></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border); display:flex; gap:0.7rem;"><div class="skel" style="width:60px;height:1.5em;flex-shrink:0;margin-top:0.2rem;"></div><div style="flex:1"><div class="skel skel-line" style="width:80%"></div><div class="skel skel-line" style="width:45%"></div></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border); display:flex; gap:0.7rem;"><div class="skel" style="width:60px;height:1.5em;flex-shrink:0;margin-top:0.2rem;"></div><div style="flex:1"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line" style="width:35%"></div></div></div>
+    </div>
+    <a class="more-link"
+       href="https://news.google.com/search?q=%E4%B8%AD%E8%A5%BF%E3%82%A2%E3%83%AB%E3%83%8E&hl=ja"
+       target="_blank">
+      Google Newsで「中西アルノ」を検索 ↗
+    </a>
+  </section>
+
+  <!-- CENTER-BOTTOM2: YOUTUBE -->
+  <section class="panel youtube-col" id="yt-sec">
+    <div class="panel-head">
+      <span class="panel-title">▶ 乃木坂配信中 — 中西アルノ関連動画</span>
+      <span class="panel-count" id="yt-count">Loading...</span>
+    </div>
+    <div id="yt-body">
+      <div class="yt-grid">
+        <div style="padding:2rem 1.2rem;">
+          <div class="skel" style="width:100%;aspect-ratio:16/9;"></div>
+          <div class="skel skel-line" style="width:80%;margin-top:0.5rem;"></div>
+        </div>
+        <div style="padding:2rem 1.2rem;">
+          <div class="skel" style="width:100%;aspect-ratio:16/9;"></div>
+          <div class="skel skel-line" style="width:70%;margin-top:0.5rem;"></div>
+        </div>
+        <div style="padding:2rem 1.2rem;">
+          <div class="skel" style="width:100%;aspect-ratio:16/9;"></div>
+          <div class="skel skel-line" style="width:75%;margin-top:0.5rem;"></div>
+        </div>
+      </div>
+    </div>
+    <a class="more-link" href="https://www.youtube.com/@nogizakahaishinchu" target="_blank">
+      乃木坂配信中チャンネルをすべて見る ↗
+    </a>
+  </section>
+
+  <!-- RIGHT: TV/MEDIA -->
+  <aside class="panel tv-col" id="tv-sec">
+    <div class="panel-head">
+      <span class="panel-title">TV / MEDIA</span>
+      <span class="panel-count" id="tv-count">Loading...</span>
+    </div>
+    <div id="tv-body">
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border);"><div class="skel skel-line" style="width:40%"></div><div class="skel skel-line" style="width:80%"></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border);"><div class="skel skel-line" style="width:35%"></div><div class="skel skel-line" style="width:70%"></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border);"><div class="skel skel-line" style="width:45%"></div><div class="skel skel-line" style="width:85%"></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border);"><div class="skel skel-line" style="width:30%"></div><div class="skel skel-line" style="width:75%"></div></div>
+      <div style="padding:0.7rem 1.2rem; border-bottom:1px solid var(--border);"><div class="skel skel-line" style="width:40%"></div><div class="skel skel-line" style="width:80%"></div></div>
+    </div>
+    <a class="more-link" href="https://www.oricon.co.jp/prof/890440/tv/" target="_blank">
+      TV出演情報をすべて見る ↗
+    </a>
+  </aside>
+
+</main>
+
+<script>
+// ── UTILS ────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+// 複数プロキシをフォールバック方式で試みる (安定性向上)
+async function fetchViaProxy(targetUrl) {
+  const proxies = [
+    // 1. allorigins (JSON 래퍼)
+    async (u) => {
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      const j = await r.json();
+      return j.contents || '';
+    },
+    // 2. corsproxy.io
+    async (u) => {
+      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      return await r.text();
+    },
+    // 3. thingproxy
+    async (u) => {
+      const r = await fetch(`https://thingproxy.freeboard.io/fetch/${u}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      return await r.text();
+    },
+    // 4. codetabs
+    async (u) => {
+      const r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      return await r.text();
+    },
+    // 5. htmldriven
+    async (u) => {
+      const r = await fetch(`https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      const j = await r.json();
+      return j.body || '';
+    },
+  ];
+  for (const fn of proxies) {
+    try {
+      const text = await fn(targetUrl);
+      if (text && text.length > 200) { console.log('Proxy success for', targetUrl); return text; }
+    } catch(e) {
+      console.warn('Proxy failed, trying next...', e.message);
+    }
+  }
+  console.error('All proxies failed for', targetUrl);
+  return null;
+}
+
+function fmtDate(d) {
+  if (!d || isNaN(d)) return '----.--.--';
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtTime(d) {
+  return fmtDate(d) + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function isNew(d) {
+  return d && (Date.now() - d.getTime()) < 3 * 86400000;
+}
+function calcAge() {
+  const bd = new Date('2003-03-17');
+  const now = new Date();
+  let age = now.getFullYear() - bd.getFullYear();
+  if (now < new Date(now.getFullYear(), bd.getMonth(), bd.getDate())) age--;
+  return age;
+}
+
+// ── DATA STORE ──────────────────────────────────────
+// 全データをここに保持し、ページネーションはJS側で処理
+const STORE = {
+  blog: [],
+  news: [],
+  youtube: [],
+};
+
+// ── PAGINATION STATE ─────────────────────────────────
+const PAGE = { blog: 1, news: 1, youtube: 1 };
+const PER_PAGE = { blog: 12, news: 15, youtube: 12 };
+
+// ── BLOG FETCH (全ページ取得) ─────────────────────────
+async function fetchBlog() {
+  const BASE = 'https://tools.yotujoho.com/blog/nogizaka46/n-55395/';
+  const allPosts = [];
+  const seenTitles = new Set();
+  const seenIds = new Set();
+
+  // まず1ページ目を取得してページ数を確認
+  for (let page = 1; page <= 5; page++) {
+    const url = page === 1 ? BASE : `${BASE}?page=${page}`;
+    try {
+      const rawText = await fetchViaProxy(url);
+      if (!rawText) break;
+
+      const h3s = [...new DOMParser().parseFromString(rawText, 'text/html')
+        .querySelectorAll('h3')]
+        .filter(h => {
+          const t = h.textContent.trim();
+          return t.length > 1 && t.length < 80
+            && !t.includes('Recent') && !t.includes('Archive')
+            && !t.includes('坂道');
+        });
+
+      const imgMatches  = [...rawText.matchAll(/https:\/\/yotujoho\.com\/blog-data\/nogizaka46\/image\/(\d+)\/small\/0\.jpg/g)];
+      const linkMatches = [...rawText.matchAll(/nogizaka46\.com\/s\/n46\/diary\/detail\/(\d+)/g)];
+      const dateMatches = [...rawText.matchAll(/(\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2})/g)];
+
+      const uniqueLinks = [];
+      for (const m of linkMatches) {
+        if (!seenIds.has(m[1])) { seenIds.add(m[1]); uniqueLinks.push(m); }
+      }
+
+      const count = Math.min(h3s.length, imgMatches.length);
+      let added = 0;
+      for (let i = 0; i < count; i++) {
+        const title = h3s[i]?.textContent?.trim();
+        if (!title || seenTitles.has(title)) continue;
+        seenTitles.add(title);
+        const imgSrc = imgMatches[i]?.[0] || '';
+        const articleId = uniqueLinks[i]?.[1] || '';
+        const rawDate = dateMatches[i]?.[1] || '';
+        let d = null;
+        if (rawDate) {
+          const p = rawDate.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+          if (p) d = new Date(+p[1], +p[2]-1, +p[3], +p[4], +p[5]);
+        }
+        allPosts.push({
+          title, thumb: imgSrc, date: d,
+          link: articleId
+            ? `https://www.nogizaka46.com/s/n46/diary/detail/${articleId}`
+            : 'https://www.nogizaka46.com/s/n46/diary/MEMBER/list?ct=55395',
+          num: allPosts.length + 1,
+        });
+        added++;
+      }
+      console.log(`Blog page ${page}: +${added} posts (total: ${allPosts.length})`);
+
+      // ページネーションリンクがなければ終了
+      if (!rawText.includes('page=') && !rawText.includes('次へ')) break;
+      if (added === 0) break;
+
+    } catch(e) {
+      console.error(`Blog page ${page} error:`, e);
+      break;
+    }
+  }
+  return allPosts;
+}
+
+// ── NEWS FETCH (Netlify Function経由) ───────────────
+async function fetchNews() {
+  // まずNetlify Functionを試みる（サーバーサイドfetch、CORS回避）
+  const tryNetlifyFn = async () => {
+    const r = await fetch('/.netlify/functions/news', { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error('netlify fn status ' + r.status);
+    const xmlText = await r.text();
+    if (!xmlText || xmlText.length < 100) throw new Error('empty response');
+    return xmlText;
+  };
+
+  const parseNewsXml = (xmlText) => {
+    const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+    let items = [...xml.querySelectorAll('item')].map(item => ({
+      title: item.querySelector('title')?.textContent || '',
+      link:  item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href') || '#',
+      pub:   item.querySelector('pubDate')?.textContent || '',
+      src:   item.querySelector('source')?.textContent || '',
+    })).filter(x => x.title);
+
+    const ARUNO_NEWS_RE = /中西アルノ|アルノ|[Aa]runo/;
+    const filtered = items.filter(x => ARUNO_NEWS_RE.test(x.title));
+    const result = filtered.length >= 3 ? filtered : items;
+    result.sort((a,b) => new Date(b.pub||0) - new Date(a.pub||0));
+    console.log(`News: ${items.length} total → ${result.length} after filter`);
+    return result;
+  };
+
+  // 1. Netlify Function (サーバーサイド)
+  try {
+    const xmlText = await tryNetlifyFn();
+    return parseNewsXml(xmlText);
+  } catch(e) {
+    console.warn('Netlify fn failed, trying proxy...', e.message);
+  }
+
+  // 2. フォールバック: 外部プロキシ
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent('中西アルノ 乃木坂46')}&hl=ja&gl=JP&ceid=JP:ja`;
+  try {
+    const rawText = await fetchViaProxy(rssUrl);
+    if (!rawText) return [];
+    return parseNewsXml(rawText);
+  } catch(e2) {
+    console.error('News fetch error:', e2);
+    return [];
+  }
+}
+
+// ── YOUTUBE FETCH (Netlify Function経由) ────────────
+const YT_CHANNEL_ID = 'UCfvohDfHt1v5N8l3BzPRsWQ';
+const ARUNO_KEYWORDS = ['中西', 'アルノ', '5期生', '5期', 'aruno', 'nakanishi'];
+
+async function fetchYoutube() {
+  const parseYoutubeXml = (xmlText) => {
+    const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+    const entries = [...xml.querySelectorAll('entry')];
+    const videos = entries.map(entry => {
+      const videoId = entry.querySelector('videoId')?.textContent
+                   || (entry.querySelector('id')?.textContent || '').split(':').pop()
+                   || '';
+      const title     = entry.querySelector('title')?.textContent || '';
+      const published = entry.querySelector('published')?.textContent || '';
+      const thumb     = videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : '';
+      return { videoId, title, published, thumb };
+    }).filter(v => v.videoId && v.title);
+
+    const aruno = videos.filter(v => ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
+    const rest  = videos.filter(v => !ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
+    console.log(`YouTube: ${aruno.length} Aruno, ${rest.length} others`);
+    return [...aruno, ...rest];
+  };
+
+  // 1. Netlify Function (サーバーサイドfetch、CORS完全回避)
+  try {
+    const r = await fetch('/.netlify/functions/youtube', { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error('netlify fn status ' + r.status);
+    const xmlText = await r.text();
+    if (!xmlText || xmlText.length < 100) throw new Error('empty response');
+    return parseYoutubeXml(xmlText);
+  } catch(e) {
+    console.warn('Netlify fn YouTube failed, trying proxy...', e.message);
+  }
+
+  // 2. フォールバック: 外部プロキシ
+  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`;
+  try {
+    const rawText = await fetchViaProxy(rssUrl);
+    if (!rawText) return [];
+    return parseYoutubeXml(rawText);
+  } catch(e2) {
+    console.error('YouTube fetch error:', e2);
+    return [];
+  }
+}
+
+// ── PAGINATION HELPER ────────────────────────────────
+function makePagination(key, total, perPage) {
+  const totalPages = Math.ceil(total / perPage);
+  if (totalPages <= 1) return '';
+
+  const cur = PAGE[key];
+  const pages = [];
+
+  pages.push(`<button class="pg-btn" ${cur===1?'disabled':''} onclick="goPage('${key}',1)">«</button>`);
+  pages.push(`<button class="pg-btn" ${cur===1?'disabled':''} onclick="goPage('${key}',${cur-1})">‹</button>`);
+
+  let start = Math.max(1, cur - 2);
+  let end   = Math.min(totalPages, cur + 2);
+  if (start > 1) pages.push(`<span class="pg-ellipsis">…</span>`);
+  for (let p = start; p <= end; p++) {
+    pages.push(`<button class="pg-btn${p===cur?' active':''}" onclick="goPage('${key}',${p})">${p}</button>`);
+  }
+  if (end < totalPages) pages.push(`<span class="pg-ellipsis">…</span>`);
+
+  pages.push(`<button class="pg-btn" ${cur===totalPages?'disabled':''} onclick="goPage('${key}',${cur+1})">›</button>`);
+  pages.push(`<button class="pg-btn" ${cur===totalPages?'disabled':''} onclick="goPage('${key}',${totalPages})">»</button>`);
+
+  return `<div class="pagination">${pages.join('')}</div>`;
+}
+
+function goPage(key, page) {
+  PAGE[key] = page;
+  const fns = { blog: renderBlog, news: renderNews, youtube: renderYoutube };
+  fns[key](STORE[key]);
+  const secMap = { blog: 'blog-sec', news: 'news-sec', youtube: 'yt-sec' };
+  document.getElementById(secMap[key])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── RENDER BLOG ──────────────────────────────────────
+function renderBlog(posts) {
+  const body = $('blog-body');
+  STORE.blog = posts;
+  if (!posts || !posts.length) {
+    body.innerHTML = `<div class="err">ブログデータの取得に失敗しました。<br>
+      <a href="https://www.nogizaka46.com/s/n46/diary/MEMBER/list?ct=55395" target="_blank">公式ブログを直接確認 ↗</a></div>`;
+    $('blog-count').textContent = 'ERROR';
+    return;
+  }
+
+  const perPage = PER_PAGE.blog;
+  const cur = PAGE.blog;
+  const start = (cur - 1) * perPage;
+  const pagePosts = posts.slice(start, start + perPage);
+
+  $('blog-count').textContent = `${posts.length} posts / p.${cur}`;
+
+  const grid = document.createElement('div');
+  grid.className = 'blog-grid';
+  grid.innerHTML = pagePosts.map((p, i) => `
+    <div class="blog-card fu" style="animation-delay:${i*0.04}s"
+         onclick="window.open('${p.link}','_blank')">
+      <div class="blog-thumb-wrap">
+        ${p.thumb
+          ? `<img class="blog-thumb" src="${p.thumb}" alt="${p.title}" loading="lazy"
+                 onerror="this.parentElement.style.background='var(--border)'">`
+          : `<div style="width:100%;height:100%;background:var(--border);"></div>`}
+      </div>
+      <div class="blog-card-body">
+        <div class="blog-card-meta">
+          <span class="blog-card-date">${fmtDate(p.date)}</span>
+          ${isNew(p.date) ? '<span class="new-badge">NEW</span>' : ''}
+        </div>
+        <div class="blog-card-title">${p.title}</div>
+      </div>
+    </div>
+  `).join('');
+
+  body.innerHTML = '';
+  body.appendChild(grid);
+  body.insertAdjacentHTML('beforeend', makePagination('blog', posts.length, perPage));
+}
+
+// ── RENDER NEWS ──────────────────────────────────────
+function sourceBadgeClass(src) {
+  if (/natalie/i.test(src))     return 'natalie';
+  if (/oricon/i.test(src))      return 'oricon';
+  if (/modelpress/i.test(src))  return 'model';
+  return 'other';
+}
+
+function renderNews(items) {
+  const body = $('news-body');
+  STORE.news = items;
+  if (!items || !items.length) {
+    body.innerHTML = `<div class="err">ニュースを取得できませんでした。<br>
+      <a href="https://news.google.com/search?q=%E4%B8%AD%E8%A5%BF%E3%82%A2%E3%83%AB%E3%83%8E&hl=ja" target="_blank">Google Newsで検索 ↗</a></div>`;
+    $('news-count').textContent = 'ERROR';
+    return;
+  }
+
+  const perPage = PER_PAGE.news;
+  const cur = PAGE.news;
+  const start = (cur - 1) * perPage;
+  const pageItems = items.slice(start, start + perPage);
+
+  $('news-count').textContent = `${items.length} articles / p.${cur}`;
+  body.innerHTML = pageItems.map((item, i) => {
+    const d = item.pub ? new Date(item.pub) : null;
+    const cls = sourceBadgeClass(item.src);
+    return `
+      <div class="news-item fu" style="animation-delay:${i*0.04}s"
+           onclick="window.open('${item.link.replace(/'/g,"\'")}','_blank')">
+        <div class="news-source-badge ${cls}">${item.src || 'NEWS'}</div>
+        <div class="news-content">
+          <div class="news-title">${item.title}</div>
+          <div class="news-meta">${fmtDate(d)}</div>
+        </div>
+      </div>`;
+  }).join('') + makePagination('news', items.length, perPage);
+}
+
+// ── RENDER TV ────────────────────────────────────────
+const STATIC_TV = [
+  { date:'2026-04-09', title:'惡の華（ドラマ）', ch:'テレビ東京系列', type:'DRAMA' },
+  { date:'2026-04-09', title:'惡の華 毎週木曜 深0:00〜', ch:'Disney+でもアジア独占配信', type:'DRAMA' },
+  { date:'2026-02-08', title:'乃木坂工事中【マジ余興で大白熱の新年会】', ch:'テレビ東京系列 25:03〜', type:'TV' },
+  { date:'2026-02-01', title:'乃木坂工事中【チーム対抗の大新年会 余興開幕】', ch:'テレビ東京系列 24:25〜', type:'TV' },
+  { date:'2026-01-25', title:'乃木坂工事中【チーム対抗の大新年会】', ch:'テレビ東京系列 24:15〜', type:'TV' },
+  { date:'2026-01-18', title:'のぎ鍋', ch:'テレビ東京系列 24:45〜', type:'TV' },
+  { date:'2025-12-31', title:'NHK紅白歌合戦', ch:'NHK総合', type:'TV' },
+  { date:'2025-11-14', title:'乃木坂46 5th ALBUM MEMORIAL LIVE', ch:'有明アリーナ', type:'LIVE' },
+  { date:'2025-08-22', title:'BRODY 10月号 表紙＆巻頭グラビア', ch:'白夜書房', type:'MAG' },
+  { date:'2026-02-28', title:'ENTAME 0.36sec. vol.01 表紙＆巻頭', ch:'徳間書店', type:'MAG' },
+];
+
+function renderTV(items) {
+  const body = $('tv-body');
+  $('tv-count').textContent = `${items.length} items`;
+  const typeColor = { DRAMA:'var(--accent3)', TV:'var(--accent2)', LIVE:'var(--green)', MAG:'var(--accent)' };
+  body.innerHTML = items.map((item, i) => {
+    const d = new Date(item.date);
+    const isPast = d < new Date();
+    return `
+      <div class="tv-item fu" style="animation-delay:${i*0.04}s;opacity:${isPast?'0.6':'1'}">
+        <div class="tv-item-date" style="color:${typeColor[item.type]||'var(--accent2)'}">
+          ${fmtDate(d)} ${isPast ? '✓' : '▶'}
+        </div>
+        <div class="tv-item-title">${item.title}</div>
+        <div class="tv-item-ch">${item.ch}</div>
+        <div class="tv-type-dot" style="border-color:${typeColor[item.type]};color:${typeColor[item.type]}">
+          ${item.type}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── RENDER YOUTUBE ───────────────────────────────────
+function renderYoutube(videos) {
+  const body = $('yt-body');
+  STORE.youtube = videos;
+  if (!videos || !videos.length) {
+    body.innerHTML = `<div class="err">YouTube動画を取得できませんでした。<br>
+      <a href="https://www.youtube.com/@nogizakahaishinchu" target="_blank">乃木坂配信中チャンネルを開く ↗</a></div>`;
+    $('yt-count').textContent = 'ERROR';
+    return;
+  }
+
+  const perPage = PER_PAGE.youtube;
+  const cur = PAGE.youtube;
+  const start = (cur - 1) * perPage;
+  const pageVids = videos.slice(start, start + perPage);
+
+  $('yt-count').textContent = `${videos.length} videos / p.${cur}`;
+  const grid = document.createElement('div');
+  grid.className = 'yt-grid';
+  grid.innerHTML = pageVids.map((v, i) => {
+    const d = v.published ? new Date(v.published) : null;
+    const isAruno = ARUNO_KEYWORDS.some(kw => v.title.includes(kw));
+    const ytUrl = `https://www.youtube.com/watch?v=${v.videoId}`;
+    return `
+      <div class="yt-card fu" style="animation-delay:${i*0.04}s"
+           onclick="window.open('${ytUrl}','_blank')">
+        <div class="yt-thumb-wrap">
+          <img class="yt-thumb" src="${v.thumb}" alt="${v.title}" loading="lazy"
+               onerror="this.src='https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg'">
+          <div class="yt-play-icon">▶</div>
+          ${isAruno ? '<div class="yt-aruno-badge">ARUNO</div>' : ''}
+        </div>
+        <div class="yt-card-body">
+          <div class="yt-card-date">${fmtDate(d)}</div>
+          <div class="yt-card-title">${v.title}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = '';
+  body.appendChild(grid);
+  body.insertAdjacentHTML('beforeend', makePagination('youtube', videos.length, perPage));
+}
+
+// ── MAIN ─────────────────────────────────────────────
+async function loadAll() {
+  const btn = $('refresh-btn');
+  btn.textContent = '...';
+  btn.disabled = true;
+  PAGE.blog = 1; PAGE.news = 1; PAGE.youtube = 1;
+
+  $('age-val').textContent = calcAge() + '歳';
+
+  const [blogPosts, newsItems, ytVideos] = await Promise.all([
+    fetchBlog(),
+    fetchNews(),
+    fetchYoutube(),
+  ]);
+
+  renderBlog(blogPosts);
+  renderNews(newsItems);
+  renderTV(STATIC_TV.sort((a,b) => new Date(b.date) - new Date(a.date)));
+  renderYoutube(ytVideos);
+
+  $('updated-time').textContent = fmtTime(new Date());
+  btn.textContent = '↺ 更新';
+  btn.disabled = false;
+}
+
+loadAll();
+setInterval(loadAll, 30 * 60 * 1000);
+</script>
+</body>
+</html>
