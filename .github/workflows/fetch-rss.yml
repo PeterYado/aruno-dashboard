@@ -1,0 +1,82 @@
+name: Fetch RSS Data
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 1時間ごと
+  workflow_dispatch:       # 手動トリガー（更新ボタン用）
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch News RSS
+        run: |
+          curl -s -L \
+            -H "User-Agent: Mozilla/5.0 (compatible; Googlebot/2.1)" \
+            -H "Accept: application/rss+xml, application/xml, text/xml" \
+            "https://news.google.com/rss/search?q=%E4%B8%AD%E8%A5%BF%E3%82%A2%E3%83%AB%E3%83%8E%20%E4%B9%83%E6%9C%A8%E5%9D%8246&hl=ja&gl=JP&ceid=JP:ja" \
+            -o /tmp/news.xml || echo "News fetch failed"
+
+          node -e "
+          const fs = require('fs');
+          const xml = fs.readFileSync('/tmp/news.xml', 'utf8');
+          const items = [];
+          const itemReg = /<item>([\s\S]*?)<\/item>/g;
+          let m;
+          while ((m = itemReg.exec(xml)) !== null) {
+            const block = m[1];
+            const title = (block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || block.match(/<title>(.*?)<\/title>/) || [])[1] || '';
+            const link  = (block.match(/<link>(.*?)<\/link>/)  || [])[1] || '#';
+            const pub   = (block.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+            const src   = (block.match(/<source[^>]*>(.*?)<\/source>/) || [])[1] || '';
+            if (title) items.push({ title, link, pub, src });
+          }
+          const ARUNO_RE = /中西アルノ|アルノ|[Aa]runo/;
+          const filtered = items.filter(x => ARUNO_RE.test(x.title));
+          const result = filtered.length >= 3 ? filtered : items;
+          result.sort((a,b) => new Date(b.pub||0) - new Date(a.pub||0));
+          fs.writeFileSync('data/news.json', JSON.stringify({ updated: new Date().toISOString(), items: result }, null, 2));
+          console.log('News items:', result.length);
+          "
+
+      - name: Fetch YouTube RSS
+        run: |
+          curl -s -L \
+            -H "User-Agent: Mozilla/5.0 (compatible; Googlebot/2.1)" \
+            "https://www.youtube.com/feeds/videos.xml?channel_id=UCfvohDfHt1v5N8l3BzPRsWQ" \
+            -o /tmp/youtube.xml || echo "YouTube fetch failed"
+
+          node -e "
+          const fs = require('fs');
+          const xml = fs.readFileSync('/tmp/youtube.xml', 'utf8');
+          const entries = [];
+          const entryReg = /<entry>([\s\S]*?)<\/entry>/g;
+          let m;
+          while ((m = entryReg.exec(xml)) !== null) {
+            const block = m[1];
+            const videoId = (block.match(/<yt:videoId>(.*?)<\/yt:videoId>/) || [])[1] || '';
+            const title   = (block.match(/<title>(.*?)<\/title>/) || [])[1] || '';
+            const published = (block.match(/<published>(.*?)<\/published>/) || [])[1] || '';
+            const thumb   = videoId ? 'https://i.ytimg.com/vi/' + videoId + '/mqdefault.jpg' : '';
+            if (videoId && title) entries.push({ videoId, title, published, thumb });
+          }
+          const KEYWORDS = ['中西', 'アルノ', '5期生', '5期', 'aruno', 'nakanishi'];
+          const aruno = entries.filter(v => KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
+          const rest  = entries.filter(v => !KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
+          const result = [...aruno, ...rest];
+          fs.writeFileSync('data/youtube.json', JSON.stringify({ updated: new Date().toISOString(), items: result }, null, 2));
+          console.log('YouTube items:', result.length);
+          "
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/news.json data/youtube.json
+          git diff --cached --quiet || git commit -m "chore: update RSS data $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push
