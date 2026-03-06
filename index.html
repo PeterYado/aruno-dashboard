@@ -1471,13 +1471,32 @@ function renderYoutube(videos) {
 }
 
 // ── MAIN ─────────────────────────────────────────────
-async function loadAll() {
+async function loadAll(forceRefresh = false) {
   const btn = $('refresh-btn');
   btn.textContent = '...';
   btn.disabled = true;
   PAGE.blog = 1; PAGE.news = 1; PAGE.youtube = 1;
 
   $('age-val').textContent = calcAge() + '歳';
+
+  if (forceRefresh) {
+    // GitHub Actions をトリガーしてデータを最新化
+    btn.textContent = '⟳ 取得中...';
+    try {
+      const r = await fetch('/.netlify/functions/trigger-update', {
+        method: 'POST',
+        signal: AbortSignal.timeout(10000),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        // Actions完了まで待つ（約15秒）
+        btn.textContent = '⟳ 更新中...';
+        await new Promise(resolve => setTimeout(resolve, 18000));
+      }
+    } catch(e) {
+      console.warn('Trigger failed:', e.message);
+    }
+  }
 
   const [blogPosts, newsItems, ytVideos] = await Promise.all([
     fetchBlog(),
@@ -1494,6 +1513,9 @@ async function loadAll() {
   btn.textContent = '↺ 更新';
   btn.disabled = false;
 }
+
+// 更新ボタン: GitHub Actions トリガー → データ再取得
+document.getElementById('refresh-btn').onclick = () => loadAll(true);
 
 loadAll();
 setInterval(loadAll, 30 * 60 * 1000);
