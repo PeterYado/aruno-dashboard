@@ -1137,38 +1137,44 @@ const STORE = {
 const PAGE = { blog: 1, news: 1, youtube: 1 };
 const PER_PAGE = { blog: 12, news: 15, youtube: 12 };
 
-// ── BLOG FETCH (全ページ取得) ─────────────────────────
+// ── BLOG FETCH (静的JSON → 即時ロード) ──────────────
 async function fetchBlog() {
+  // 1. 静的JSON（GitHub Actionsが定期更新、最速）
+  try {
+    const r = await fetch('/data/blog.json?_=' + Math.floor(Date.now()/60000), { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error('json status ' + r.status);
+    const j = await r.json();
+    if (j.items?.length) {
+      console.log(`Blog(static): ${j.items.length} items, updated: ${j.updated}`);
+      // dateフィールドをDateオブジェクトに変換
+      return j.items.map((p, i) => ({
+        ...p,
+        date: p.date ? new Date(p.date) : null,
+        num: i + 1,
+      }));
+    }
+    throw new Error('empty json');
+  } catch(e) {
+    console.warn('Blog static JSON failed, trying proxy...', e.message);
+  }
+
+  // 2. フォールバック: 外部プロキシ（旧方式）
   const BASE = 'https://tools.yotujoho.com/blog/nogizaka46/n-55395/';
   const allPosts = [];
   const seenTitles = new Set();
   const seenIds = new Set();
-
-  // まず1ページ目を取得してページ数を確認
   for (let page = 1; page <= 5; page++) {
     const url = page === 1 ? BASE : `${BASE}?page=${page}`;
     try {
       const rawText = await fetchViaProxy(url);
       if (!rawText) break;
-
-      const h3s = [...new DOMParser().parseFromString(rawText, 'text/html')
-        .querySelectorAll('h3')]
-        .filter(h => {
-          const t = h.textContent.trim();
-          return t.length > 1 && t.length < 80
-            && !t.includes('Recent') && !t.includes('Archive')
-            && !t.includes('坂道');
-        });
-
+      const h3s = [...new DOMParser().parseFromString(rawText, 'text/html').querySelectorAll('h3')]
+        .filter(h => { const t = h.textContent.trim(); return t.length > 1 && t.length < 80 && !t.includes('Recent') && !t.includes('Archive') && !t.includes('坂道'); });
       const imgMatches  = [...rawText.matchAll(/https:\/\/yotujoho\.com\/blog-data\/nogizaka46\/image\/(\d+)\/small\/0\.jpg/g)];
       const linkMatches = [...rawText.matchAll(/nogizaka46\.com\/s\/n46\/diary\/detail\/(\d+)/g)];
       const dateMatches = [...rawText.matchAll(/(\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2})/g)];
-
       const uniqueLinks = [];
-      for (const m of linkMatches) {
-        if (!seenIds.has(m[1])) { seenIds.add(m[1]); uniqueLinks.push(m); }
-      }
-
+      for (const m of linkMatches) { if (!seenIds.has(m[1])) { seenIds.add(m[1]); uniqueLinks.push(m); } }
       const count = Math.min(h3s.length, imgMatches.length);
       let added = 0;
       for (let i = 0; i < count; i++) {
@@ -1179,33 +1185,16 @@ async function fetchBlog() {
         const articleId = uniqueLinks[i]?.[1] || '';
         const rawDate = dateMatches[i]?.[1] || '';
         let d = null;
-        if (rawDate) {
-          const p = rawDate.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
-          if (p) d = new Date(+p[1], +p[2]-1, +p[3], +p[4], +p[5]);
-        }
-        allPosts.push({
-          title, thumb: imgSrc, date: d,
-          link: articleId
-            ? `https://www.nogizaka46.com/s/n46/diary/detail/${articleId}`
-            : 'https://www.nogizaka46.com/s/n46/diary/MEMBER/list?ct=55395',
-          num: allPosts.length + 1,
-        });
+        if (rawDate) { const p = rawDate.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/); if (p) d = new Date(+p[1], +p[2]-1, +p[3], +p[4], +p[5]); }
+        allPosts.push({ title, thumb: imgSrc, date: d, link: articleId ? `https://www.nogizaka46.com/s/n46/diary/detail/${articleId}` : 'https://www.nogizaka46.com/s/n46/diary/MEMBER/list?ct=55395', num: allPosts.length + 1 });
         added++;
       }
-      console.log(`Blog page ${page}: +${added} posts (total: ${allPosts.length})`);
-
-      // ページネーションリンクがなければ終了
       if (!rawText.includes('page=') && !rawText.includes('次へ')) break;
       if (added === 0) break;
-
-    } catch(e) {
-      console.error(`Blog page ${page} error:`, e);
-      break;
-    }
+    } catch(e) { console.error(`Blog page ${page} error:`, e); break; }
   }
   return allPosts;
 }
-
 // ── NEWS FETCH (静的JSON → 即時ロード) ──────────────
 async function fetchNews() {
   // 1. 静的JSON（GitHub Actionsが定期更新、最速）
