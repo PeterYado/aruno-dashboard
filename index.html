@@ -1206,95 +1206,80 @@ async function fetchBlog() {
   return allPosts;
 }
 
-// ── NEWS FETCH (Netlify Function経由) ───────────────
+// ── NEWS FETCH (静的JSON → 即時ロード) ──────────────
 async function fetchNews() {
-  // まずNetlify Functionを試みる（サーバーサイドfetch、CORS回避）
-  const tryNetlifyFn = async () => {
+  // 1. 静的JSON（GitHub Actionsが定期更新、最速）
+  try {
+    const r = await fetch('/data/news.json?_=' + Math.floor(Date.now()/60000), { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error('json status ' + r.status);
+    const j = await r.json();
+    if (j.items?.length) {
+      console.log(`News(static): ${j.items.length} items, updated: ${j.updated}`);
+      return j.items;
+    }
+    throw new Error('empty json');
+  } catch(e) {
+    console.warn('Static JSON failed, trying Netlify fn...', e.message);
+  }
+
+  // 2. フォールバック: Netlify Function
+  try {
     const r = await fetch('/.netlify/functions/news', { signal: AbortSignal.timeout(15000) });
     if (!r.ok) throw new Error('netlify fn status ' + r.status);
     const xmlText = await r.text();
-    if (!xmlText || xmlText.length < 100) throw new Error('empty response');
-    return xmlText;
-  };
-
-  const parseNewsXml = (xmlText) => {
     const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
     let items = [...xml.querySelectorAll('item')].map(item => ({
       title: item.querySelector('title')?.textContent || '',
-      link:  item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href') || '#',
+      link:  item.querySelector('link')?.textContent || '#',
       pub:   item.querySelector('pubDate')?.textContent || '',
       src:   item.querySelector('source')?.textContent || '',
     })).filter(x => x.title);
-
     const ARUNO_NEWS_RE = /中西アルノ|アルノ|[Aa]runo/;
     const filtered = items.filter(x => ARUNO_NEWS_RE.test(x.title));
-    const result = filtered.length >= 3 ? filtered : items;
-    result.sort((a,b) => new Date(b.pub||0) - new Date(a.pub||0));
-    console.log(`News: ${items.length} total → ${result.length} after filter`);
-    return result;
-  };
-
-  // 1. Netlify Function (サーバーサイド)
-  try {
-    const xmlText = await tryNetlifyFn();
-    return parseNewsXml(xmlText);
-  } catch(e) {
-    console.warn('Netlify fn failed, trying proxy...', e.message);
-  }
-
-  // 2. フォールバック: 外部プロキシ
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent('中西アルノ 乃木坂46')}&hl=ja&gl=JP&ceid=JP:ja`;
-  try {
-    const rawText = await fetchViaProxy(rssUrl);
-    if (!rawText) return [];
-    return parseNewsXml(rawText);
+    return filtered.length >= 3 ? filtered : items;
   } catch(e2) {
     console.error('News fetch error:', e2);
     return [];
   }
 }
 
-// ── YOUTUBE FETCH (Netlify Function経由) ────────────
+// ── YOUTUBE FETCH (静的JSON → 即時ロード) ───────────
 const YT_CHANNEL_ID = 'UCfvohDfHt1v5N8l3BzPRsWQ';
 const ARUNO_KEYWORDS = ['中西', 'アルノ', '5期生', '5期', 'aruno', 'nakanishi'];
 
 async function fetchYoutube() {
-  const parseYoutubeXml = (xmlText) => {
+  // 1. 静的JSON（GitHub Actionsが定期更新、最速）
+  try {
+    const r = await fetch('/data/youtube.json?_=' + Math.floor(Date.now()/60000), { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error('json status ' + r.status);
+    const j = await r.json();
+    if (j.items?.length) {
+      console.log(`YouTube(static): ${j.items.length} items, updated: ${j.updated}`);
+      return j.items;
+    }
+    throw new Error('empty json');
+  } catch(e) {
+    console.warn('Static JSON failed, trying Netlify fn...', e.message);
+  }
+
+  // 2. フォールバック: Netlify Function
+  try {
+    const r = await fetch('/.netlify/functions/youtube', { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error('netlify fn status ' + r.status);
+    const xmlText = await r.text();
     const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
     const entries = [...xml.querySelectorAll('entry')];
     const videos = entries.map(entry => {
       const videoId = entry.querySelector('videoId')?.textContent
-                   || (entry.querySelector('id')?.textContent || '').split(':').pop()
-                   || '';
+                   || (entry.querySelector('id')?.textContent || '').split(':').pop() || '';
       const title     = entry.querySelector('title')?.textContent || '';
       const published = entry.querySelector('published')?.textContent || '';
       const thumb     = videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : '';
       return { videoId, title, published, thumb };
     }).filter(v => v.videoId && v.title);
-
     const aruno = videos.filter(v => ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
     const rest  = videos.filter(v => !ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
-    console.log(`YouTube: ${aruno.length} Aruno, ${rest.length} others`);
     return [...aruno, ...rest];
-  };
-
-  // 1. Netlify Function (サーバーサイドfetch、CORS完全回避)
-  try {
-    const r = await fetch('/.netlify/functions/youtube', { signal: AbortSignal.timeout(15000) });
-    if (!r.ok) throw new Error('netlify fn status ' + r.status);
-    const xmlText = await r.text();
-    if (!xmlText || xmlText.length < 100) throw new Error('empty response');
-    return parseYoutubeXml(xmlText);
-  } catch(e) {
-    console.warn('Netlify fn YouTube failed, trying proxy...', e.message);
-  }
-
-  // 2. フォールバック: 外部プロキシ
-  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`;
-  try {
-    const rawText = await fetchViaProxy(rssUrl);
-    if (!rawText) return [];
-    return parseYoutubeXml(rawText);
   } catch(e2) {
     console.error('YouTube fetch error:', e2);
     return [];
