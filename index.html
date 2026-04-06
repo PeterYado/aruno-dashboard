@@ -1270,41 +1270,9 @@ async function fetchYoutube() {
     const rest  = videos.filter(v => !ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
     return [...aruno, ...rest];
   } catch(e2) {
-    console.warn('Netlify fn failed, trying CORS proxy...', e2.message);
+    console.error('YouTube fetch error:', e2);
+    return [];
   }
-
-  // 3. フォールバック: CORSプロキシ経由で直接取得
-  const PROXIES = [
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  ];
-  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`;
-  for (const mkUrl of PROXIES) {
-    try {
-      const r = await fetch(mkUrl(rssUrl), { signal: AbortSignal.timeout(10000) });
-      if (!r.ok) throw new Error('proxy status ' + r.status);
-      const xmlText = await r.text();
-      const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
-      const entries = [...xml.querySelectorAll('entry')];
-      const videos = entries.map(entry => {
-        const videoId = entry.querySelector('videoId')?.textContent
-                     || (entry.querySelector('id')?.textContent || '').split(':').pop() || '';
-        const title     = entry.querySelector('title')?.textContent || '';
-        const published = entry.querySelector('published')?.textContent || '';
-        const thumb     = videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : '';
-        return { videoId, title, published, thumb };
-      }).filter(v => v.videoId && v.title);
-      const aruno = videos.filter(v => ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
-      const rest  = videos.filter(v => !ARUNO_KEYWORDS.some(kw => v.title.toLowerCase().includes(kw.toLowerCase())));
-      console.log(`YouTube(proxy): ${videos.length} items`);
-      return [...aruno, ...rest];
-    } catch(e3) {
-      console.warn('Proxy failed:', e3.message);
-    }
-  }
-
-  console.error('YouTube: all fetch methods failed');
-  return [];
 }
 
 // ── PAGINATION HELPER ────────────────────────────────
