@@ -16,7 +16,7 @@ while ((m = entryReg.exec(xml)) !== null) {
   const title = titleMatch ? titleMatch[1] : '';
   const publishedMatch = block.match(/<published>(.*?)<\/published>/);
   const published = publishedMatch ? publishedMatch[1] : '';
-  const thumb = videoId ? 'https://i.ytimg.com/vi/' + videoId + '/mqdefault.jpg' : '';
+  const thumb = videoId ? 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg' : '';
   if (videoId && title) entries.push({ videoId, title, published, thumb });
 }
 const KEYWORDS = ['中西', 'アルノ', '5期生', '5期', 'aruno', 'nakanishi'];
