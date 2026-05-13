@@ -24,12 +24,7 @@ jobs:
           node scripts/parse-news.js
 
       - name: Fetch YouTube RSS
-        run: |
-          curl -s -L \
-            -H "User-Agent: Mozilla/5.0 (compatible; Googlebot/2.1)" \
-            "https://www.youtube.com/feeds/videos.xml?channel_id=UCfvohDfHt1v5N8l3BzPRsWQ" \
-            -o /tmp/youtube.xml || echo "YouTube fetch failed"
-          node scripts/parse-youtube.js
+        run: node scripts/parse-youtube.js
 
       - name: Fetch Blog
         run: node scripts/parse-blog.js
