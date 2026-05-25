@@ -13,6 +13,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch News RSS
         run: |
@@ -33,6 +35,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/PeterYado/aruno-dashboard.git
           git add data/news.json data/youtube.json data/blog.json
           git diff --cached --quiet || git commit -m "chore: update RSS data $(date -u '+%Y-%m-%d %H:%M') UTC"
           git push
